@@ -3,6 +3,8 @@ package models.chatClients.fileOperations;
 import com.google.gson.*;
 import com.google.gson.reflect.TypeToken;
 import models.Message;
+import models.gui.LocalDateTimeDeserializer;
+import models.gui.LocalDateTimeSerializer;
 
 import java.io.*;
 import java.lang.reflect.Type;
@@ -59,26 +61,5 @@ public class JsonChatFileOperations implements ChatFileOperations {
         }
 
         return new ArrayList<>();
-    }
-}
-
-class LocalDateTimeSerializer implements JsonSerializer<LocalDateTime>
-{
-    private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyy-MM-dd HH:mm:ss");
-
-    @Override
-    public JsonElement serialize(LocalDateTime localDateTime, Type type, JsonSerializationContext jsonSerializationContext)
-    {
-        return new JsonPrimitive(formatter.format(localDateTime));
-    }
-
-}
-
-class LocalDateTimeDeserializer implements JsonDeserializer<LocalDateTime>
-{
-    @Override
-    public LocalDateTime deserialize(JsonElement jsonElement, Type type, JsonDeserializationContext jsonDeserializationContext)
-    {
-        return LocalDateTime.parse(jsonElement.getAsString(), DateTimeFormatter.ofPattern("yyy-MM-dd HH:mm:ss"));
     }
 }

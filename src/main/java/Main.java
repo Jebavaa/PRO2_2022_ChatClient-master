@@ -1,6 +1,7 @@
 import models.chatClients.ChatClient;
 import models.chatClients.FileChatClient;
 import models.chatClients.InMemoryChatClient;
+import models.chatClients.api.ApiChatClient;
 import models.chatClients.fileOperations.ChatFileOperations;
 import models.chatClients.fileOperations.JsonChatFileOperations;
 import models.database.DbInitializer;
@@ -16,7 +17,7 @@ public class Main {
         dbInitializer.init();
 
         ChatFileOperations chatFileOperations = new JsonChatFileOperations();
-        ChatClient chatClient = new FileChatClient(chatFileOperations);
+        ChatClient chatClient = new ApiChatClient();
 
         MainFrame window = new MainFrame(700, 500, chatClient);
         //test();

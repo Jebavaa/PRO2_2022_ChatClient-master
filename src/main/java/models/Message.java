@@ -59,7 +59,7 @@ public class Message {
     @Override
     public String toString() {
         if (systemMessage) {
-            return text;
+            return text + "\n";
         } else {
             return String.format("%s <%s>: %s", author, created == null ? "?" : created, text);
         }
