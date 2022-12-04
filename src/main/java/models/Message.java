@@ -9,6 +9,7 @@ public class Message {
     private String author;
     @Expose
     private final String text;
+    @Expose
     private final LocalDateTime created;
     @Expose
     private final boolean systemMessage;
@@ -20,6 +21,13 @@ public class Message {
         this.author = author;
         this.text = text;
         this.created = LocalDateTime.now();
+        systemMessage = false;
+    }
+
+    public Message(String author, String text, LocalDateTime created) {
+        this.author = author;
+        this.text = text;
+        this.created = created;
         systemMessage = false;
     }
 
@@ -41,7 +49,7 @@ public class Message {
     }
 
     public String getAuthor() {
-        return systemMessage ? "SYSTEM MESSAGE" : author;
+        return systemMessage ? "SYSTEM" : author;
     }
 
     public String getText() {
@@ -58,8 +66,8 @@ public class Message {
 
     @Override
     public String toString() {
-        if (systemMessage) {
-            return text + "\n";
+        if (systemMessage || author.equals("SYSTEM")) {
+            return text;
         } else {
             return String.format("%s <%s>: %s", author, created == null ? "?" : created, text);
         }

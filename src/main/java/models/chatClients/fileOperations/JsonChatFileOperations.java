@@ -9,7 +9,6 @@ import models.gui.LocalDateTimeSerializer;
 import java.io.*;
 import java.lang.reflect.Type;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,9 +19,9 @@ public class JsonChatFileOperations implements ChatFileOperations {
     public JsonChatFileOperations() {
         gson = new GsonBuilder()
                 .excludeFieldsWithoutExposeAnnotation()
-                .setPrettyPrinting()
                 .registerTypeAdapter(LocalDateTime.class, new LocalDateTimeSerializer())
                 .registerTypeAdapter(LocalDateTime.class, new LocalDateTimeDeserializer())
+                .setPrettyPrinting()
                 .create();
     }
 
@@ -46,14 +45,14 @@ public class JsonChatFileOperations implements ChatFileOperations {
             FileReader reader = new FileReader(MESSAGE_FILE);
             BufferedReader bufferedReader = new BufferedReader(reader);
 
-            String jsonText = "";
+            StringBuilder jsonText = new StringBuilder();
             String line;
             while ((line = bufferedReader.readLine()) != null) {
-                jsonText += line;
+                jsonText.append(line);
             }
 
             Type targetType = new TypeToken<ArrayList<Message>>(){}.getType();
-            messages = gson.fromJson(jsonText, targetType);
+            messages = gson.fromJson(jsonText.toString(), targetType);
 
             return messages;
         } catch (IOException e) {

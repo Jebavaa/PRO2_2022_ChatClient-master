@@ -7,7 +7,6 @@ import models.Message;
 import models.chatClients.ChatClient;
 import models.gui.LocalDateTimeDeserializer;
 import models.gui.LocalDateTimeSerializer;
-import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
@@ -23,254 +22,195 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-public class ApiChatClient implements ChatClient
-{
+public class ApiChatClient implements ChatClient {
+    private String loggedUser;
+    private List<String> loggedUsers;
+    private List<Message> messages;
+    private List<ActionListener> loggedUserListeners = new ArrayList<>();
+    private List<ActionListener> messageListeners = new ArrayList<>();
+    private final String BASE_URL = "http://fimuhkpro22021.aspifyhost.cz";
+    private String apiToken;
+    private Gson gson;
 
-        private String loggedUser;
-        private List<String> loggedUsers;
-        private List<Message> messages;
-        private List<ActionListener> loggedUserListeners = new ArrayList<>();
-        private List<ActionListener> messageListeners = new ArrayList<>();
+    public ApiChatClient() {
+        loggedUsers = new ArrayList<>();
+        messages = new ArrayList<>();
 
-        private final String BASE_URL = "http://fimuhkpro22021.aspifyhost.cz";
-        private String token;
-        private Gson gson;
+        gson = new GsonBuilder()
+                .registerTypeAdapter(LocalDateTime.class, new LocalDateTimeSerializer())
+                .registerTypeAdapter(LocalDateTime.class, new LocalDateTimeDeserializer())
+                .setPrettyPrinting()
+                .create();
 
-        public ApiChatClient() {
-            loggedUsers = new ArrayList<>();
-            messages = new ArrayList<>();
+        Runnable refreshData = () -> {
+            Thread.currentThread().setName("RefreshData");
 
-            gson = new GsonBuilder()
-                    .setPrettyPrinting()
-                    .registerTypeAdapter(LocalDateTime.class, new LocalDateTimeSerializer())
-                    .registerTypeAdapter(LocalDateTime.class, new LocalDateTimeDeserializer())
-                    .create();
-
-
-            // Nové vlákno
-            Runnable refreshData = ()->{
-                Thread.currentThread().setName("Refresh Data Thread");
-                try
-                {
-                    while(true)
-                    {
-                        if(isAuthenticated())
-                        {
-                            refreshLoggedUsers();
-                            refreshMessages();
-                        }
-                        TimeUnit.SECONDS.sleep(2);
-                    }
-                }
-                catch (Exception e)
-                {
+            while (true) {
+                try {
+                    TimeUnit.SECONDS.sleep(1);
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
-            };
 
-            Thread refreshDataThread = new Thread(refreshData);
-            refreshDataThread.start();
-        }
+                if (!isAuthenticated())
+                    continue;
 
-        @Override
-        public void sendMessage(String text) {
-
-            try
-            {
-                SendMessageRequest msgRequest = new SendMessageRequest(token, text);
-                String url = BASE_URL + "/api/Chat/SendMessage";
-                HttpPost post = new HttpPost(url);
-
-                String jsonBody = gson.toJson(msgRequest);
-
-                StringEntity body = new StringEntity(
-                  jsonBody,
-                  "utf-8"
-                );
-                body.setContentType("application/json");
-                post.setEntity(body);
-
-                CloseableHttpClient httpClient = HttpClients.createDefault();
-                CloseableHttpResponse response = httpClient.execute(post);
-
-                if(response.getStatusLine().getStatusCode() == 204)
-                {
-                    refreshMessages();
-                }
-
+                refreshLoggedUsers();
+                refreshMessages();
             }
-            catch (Exception e)
-            {
-                e.printStackTrace();
-            }
+        };
 
-            messages.add(new Message(loggedUser, text));
-            System.out.printf("new message - " + text);
-            raiseMessagesChangedEvent();
-        }
+        Thread refreshDataThread = new Thread(refreshData);
+        refreshDataThread.start();
+    }
 
-        @Override
-        public void login(String username) {
-            try
-            {
-                String url = BASE_URL + "/api/Chat/Login";
-                HttpPost post = new HttpPost(url);
-                StringEntity body = new StringEntity(
-                        "\""+username+"\"",
-                        "utf-8"
-                );
-                body.setContentType("application/json");
-                post.setEntity(body);
-
-                CloseableHttpClient httpClient = HttpClients.createDefault();
-                CloseableHttpResponse response = httpClient.execute(post);
-
-                if(response.getStatusLine().getStatusCode() == 200)
-                {
-                    token = EntityUtils.toString(response.getEntity());
-                    token = token.replace("\"", "").trim();
-
-                    loggedUser = username;
-                    System.out.println("user logged in " + username);
-                    raiseLoggedUsersChangedEvent();
-                    refreshLoggedUsers();
-                }
-
-            }
-            catch (Exception e)
-            {
-                e.printStackTrace();
-            }
-        }
-
-        @Override
-        public void logout() {
-
-            try
-            {
-                String url = BASE_URL + "/api/Chat/Logout";
-                HttpPost post = new HttpPost(url);
-                StringEntity body = new StringEntity(
-                        "\""+token+"\"",
-                        "utf-8"
-                );
-                body.setContentType("application/json");
-                post.setEntity(body);
-
-                CloseableHttpClient httpClient = HttpClients.createDefault();
-                CloseableHttpResponse response = httpClient.execute(post);
-
-                if(response.getStatusLine().getStatusCode() == 204)
-                {
-                    token = null;
-                    loggedUser = null;
-                    loggedUsers.clear();
-                    System.out.println("user logged out");
-                    raiseLoggedUsersChangedEvent();
-                }
-            }
-            catch (Exception e)
-            {
-                e.printStackTrace();
-            }
-
-            /*
-            messages.add(new Message(Message.USER_LOGGED_OUT, loggedUser));
-            raiseMessagesChangedEvent();
-            loggedUsers.remove(loggedUser);
-            loggedUser = null;
-            raiseLoggedUsersChangedEvent();
-            */
-
-        }
-
-
-    private void refreshLoggedUsers()
-    {
-        try{
+    private void refreshLoggedUsers() {
+        try {
             String url = BASE_URL + "/api/Chat/GetLoggedUsers";
             HttpGet get = new HttpGet(url);
 
-            CloseableHttpClient httpClient = HttpClients.createDefault();
-            CloseableHttpResponse httpResponse = httpClient.execute(get);
+            CloseableHttpClient client = HttpClients.createDefault();
+            CloseableHttpResponse response = client.execute(get);
 
-            if(httpResponse.getStatusLine().getStatusCode() == 200)
-            {
-                String jsonBody = EntityUtils.toString(httpResponse.getEntity());
-                loggedUsers = gson.fromJson(
-                        jsonBody,
-                        new TypeToken<ArrayList<String>>(){}.getType()
-                );
-                raiseLoggedUsersChangedEvent();
+            if (response.getStatusLine().getStatusCode() == 200) {
+                String jsonBody = EntityUtils.toString(response.getEntity());
+                loggedUsers = gson.fromJson(jsonBody, new TypeToken<ArrayList<String>>(){}.getType());
             }
-        }
-        catch(Exception e)
-        {
+            raiseLoggedUsersChangedEvent();
+
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private void refreshMessages()
-    {
-        try{
+    private void refreshMessages() {
+        try {
             String url = BASE_URL + "/api/Chat/GetMessages";
             HttpGet get = new HttpGet(url);
 
-            CloseableHttpClient httpClient = HttpClients.createDefault();
-            CloseableHttpResponse httpResponse = httpClient.execute(get);
+            CloseableHttpClient client = HttpClients.createDefault();
+            CloseableHttpResponse response = client.execute(get);
 
-            if(httpResponse.getStatusLine().getStatusCode() == 200)
-            {
-                String jsonBody = EntityUtils.toString(httpResponse.getEntity());
-                loggedUsers = gson.fromJson(
-                        jsonBody,
-                        new TypeToken<ArrayList<Message>>(){}.getType()
-                );
-                raiseMessagesChangedEvent();
+            if (response.getStatusLine().getStatusCode() == 200) {
+                String jsonBody = EntityUtils.toString(response.getEntity());
+                messages = gson.fromJson(jsonBody, new TypeToken<ArrayList<Message>>(){}.getType());
             }
-        }
-        catch(Exception e)
-        {
+            raiseMessagesChangedEvent();
+
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-        @Override
-        public boolean isAuthenticated() {
-            return loggedUser != null;
-        }
+    @Override
+    public void sendMessage(String text) {
+        if (!isAuthenticated())
+            return;
 
-        @Override
-        public List<String> getLoggedUsers() {
-            return loggedUsers;
-        }
+        try {
+            SendMessageRequest messageRequest = new SendMessageRequest(apiToken, text);
+            String url = BASE_URL + "/api/Chat/SendMessage";
+            HttpPost post = new HttpPost(url);
+            String jsonBody = gson.toJson(messageRequest);
+            StringEntity body = new StringEntity(jsonBody, "UTF-8");
+            body.setContentType("application/json");
+            post.setEntity(body);
 
-        @Override
-        public List<Message> getMessages() {
-            return messages;
-        }
+            CloseableHttpClient client = HttpClients.createDefault();
+            CloseableHttpResponse response = client.execute(post);
 
-        @Override
-        public void addLoggedUsersListened(ActionListener listener) {
-            loggedUserListeners.add(listener);
-        }
-
-        @Override
-        public void addMessageListened(ActionListener listener) {
-            messageListeners.add(listener);
-        }
-
-        private void raiseLoggedUsersChangedEvent() {
-            for (ActionListener listener: loggedUserListeners) {
-                listener.actionPerformed(new ActionEvent(this, 1, "usersChanged"));
+            if (response.getStatusLine().getStatusCode() == 204) {
+                refreshMessages();
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-
-        private void raiseMessagesChangedEvent() {
-            for (ActionListener listener: messageListeners) {
-                listener.actionPerformed(new ActionEvent(this, 1, "messagesChanged"));
-            }
-        }
-
     }
 
+    @Override
+    public void login(String username) {
+        try {
+            String loginUrl = BASE_URL + "/api/Chat/Login";
+            HttpPost post = new HttpPost(loginUrl);
+            StringEntity body = new StringEntity(String.format("\"%s\"", username), "UTF-8");
+            body.setContentType("application/json");
+            post.setEntity(body);
+
+            CloseableHttpClient client = HttpClients.createDefault();
+            CloseableHttpResponse response = client.execute(post);
+
+            if (response.getStatusLine().getStatusCode() == 200) {
+                apiToken = EntityUtils.toString(response.getEntity());
+                apiToken = apiToken.replace("\"", "").trim();
+
+                loggedUser = username;
+                refreshLoggedUsers();
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void logout() {
+        try {
+            String logoutUrl = BASE_URL + "/api/Chat/Logout";
+            HttpPost post = new HttpPost(logoutUrl);
+            StringEntity body = new StringEntity(String.format("\"%s\"", apiToken), "UTF-8");
+            body.setContentType("application/json");
+            post.setEntity(body);
+
+            CloseableHttpClient client = HttpClients.createDefault();
+            CloseableHttpResponse response = client.execute(post);
+
+            if (response.getStatusLine().getStatusCode() == 204) {
+                apiToken = null;
+                loggedUser = null;
+                loggedUsers.clear();
+
+                raiseLoggedUsersChangedEvent();
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public boolean isAuthenticated() {
+        return loggedUser != null;
+    }
+
+    @Override
+    public List<String> getLoggedUsers() {
+        return loggedUsers;
+    }
+
+    @Override
+    public List<Message> getMessages() {
+        return messages;
+    }
+
+    @Override
+    public void addLoggedUsersListened(ActionListener listener) {
+        loggedUserListeners.add(listener);
+    }
+
+    @Override
+    public void addMessageListened(ActionListener listener) {
+        messageListeners.add(listener);
+    }
+
+    private void raiseLoggedUsersChangedEvent() {
+        for (ActionListener listener: loggedUserListeners) {
+            listener.actionPerformed(new ActionEvent(this, 1, "usersChanged"));
+        }
+    }
+
+    private void raiseMessagesChangedEvent() {
+        for (ActionListener listener: messageListeners) {
+            listener.actionPerformed(new ActionEvent(this, 1, "messagesChanged"));
+        }
+    }
+}

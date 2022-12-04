@@ -8,7 +8,7 @@ public class RunDbConsole
     {
         try
         {
-            // connect 'jdbc:derby:ChatClientDb_skB;create=true';
+            // connect 'jdbc:derby:ChatClientDb;create=true';
             ij.main(args);
         }
         catch (IOException e)

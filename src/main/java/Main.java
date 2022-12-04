@@ -15,15 +15,17 @@ public class Main {
     public static void main(String[] args) {
 
         String databaseDriver = "org.apache.derby.jdbc.EmbeddedDriver";
-        String databaseUrl = "jdbc:derby:ChatClientDb_skB";
+        String databaseUrl = "jdbc:derby:D:\\School\\PRGF1\\PRO2_2022_ChatClient-master\\src\\ChatClientDb";
 
-        DbInitializer dbInitializer = new DbInitializer(databaseDriver, databaseUrl);
-        dbInitializer.init();
+        //DbInitializer dbInitializer = new DbInitializer(databaseDriver, databaseUrl);
+        //dbInitializer.init();
 
         ChatFileOperations chatFileOperations = new JsonChatFileOperations();
         ChatClient chatClient = new ApiChatClient();
 
+
         //region Test Reflexe
+        /*
         Class<ApiChatClient> refExample = ApiChatClient.class;
         List<Field> fields = getAllFields(refExample);
 
@@ -31,7 +33,7 @@ public class Main {
         for(Field f : fields)
         {
             System.out.println(f.getName() + " " + f.getType());
-        }
+        }*/
         //endregion
 
 

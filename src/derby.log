@@ -1,0 +1,13 @@
+----------------------------------------------------------------
+Sun Dec 04 18:03:06 CET 2022:
+ Zavádění serveru Derby verze The Apache Software Foundation - Apache Derby - 10.15.2.0 - (1873585): instance a816c00e-0184-de17-6605-000007463f48
+v adresáři databáze D:\School\PRGF1\PRO2_2022_ChatClient-master\src\ChatClientDb jdk.internal.loader.ClassLoaders$AppClassLoader@2a139a55 
+
+java.vendor=Oracle Corporation
+java.runtime.version=19.0.1+10-21
+user.dir=D:\School\PRGF1\PRO2_2022_ChatClient-master\src
+os.name=Windows 10
+os.arch=amd64
+os.version=10.0
+derby.system.home=null
+Byl spuštěn zavaděč třídy databáze - derby.database.classpath=''
