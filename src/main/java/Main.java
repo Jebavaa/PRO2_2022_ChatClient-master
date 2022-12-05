@@ -1,3 +1,4 @@
+import models.Message;
 import models.chatClients.ChatClient;
 import models.chatClients.FileChatClient;
 import models.chatClients.InMemoryChatClient;
@@ -5,6 +6,7 @@ import models.chatClients.api.ApiChatClient;
 import models.chatClients.fileOperations.ChatFileOperations;
 import models.chatClients.fileOperations.JsonChatFileOperations;
 import models.database.DbInitializer;
+import models.database.JdbcDatabaseOperations;
 import models.gui.MainFrame;
 
 import java.lang.reflect.Field;
@@ -15,13 +17,26 @@ public class Main {
     public static void main(String[] args) {
 
         String databaseDriver = "org.apache.derby.jdbc.EmbeddedDriver";
-        String databaseUrl = "jdbc:derby:D:\\School\\PRGF1\\PRO2_2022_ChatClient-master\\src\\ChatClientDb";
+        String databaseUrl = "jdbc:derby:ChatClientDb";
 
-        //DbInitializer dbInitializer = new DbInitializer(databaseDriver, databaseUrl);
-        //dbInitializer.init();
+        DbInitializer dbInitializer = new DbInitializer(databaseDriver, databaseUrl);
+        dbInitializer.init();
 
         ChatFileOperations chatFileOperations = new JsonChatFileOperations();
         ChatClient chatClient = new ApiChatClient();
+        try
+        {
+            JdbcDatabaseOperations jdbcDatabaseOperations = new JdbcDatabaseOperations(databaseDriver, databaseUrl);
+            jdbcDatabaseOperations.addMessage(new Message("author", "message"));
+            List<Message> testMessage = jdbcDatabaseOperations.getMessages();
+            System.out.println(testMessage.size());
+        }
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
+
+        //ChatClient chatClient = new InMemoryChatClient();
 
 
         //region Test Reflexe

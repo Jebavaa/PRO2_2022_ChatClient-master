@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import models.Message;
 import models.chatClients.ChatClient;
+import models.database.JdbcDatabaseOperations;
 import models.gui.LocalDateTimeDeserializer;
 import models.gui.LocalDateTimeSerializer;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -30,7 +31,9 @@ public class ApiChatClient implements ChatClient {
     private List<ActionListener> messageListeners = new ArrayList<>();
     private final String BASE_URL = "http://fimuhkpro22021.aspifyhost.cz";
     private String apiToken;
+
     private Gson gson;
+
 
     public ApiChatClient() {
         loggedUsers = new ArrayList<>();
@@ -41,6 +44,7 @@ public class ApiChatClient implements ChatClient {
                 .registerTypeAdapter(LocalDateTime.class, new LocalDateTimeDeserializer())
                 .setPrettyPrinting()
                 .create();
+
 
         Runnable refreshData = () -> {
             Thread.currentThread().setName("RefreshData");
